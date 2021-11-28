@@ -123,6 +123,8 @@ private:
 	VkExtent2D swapChainExtent;
 	VkRenderPass renderPass;
 	VkPipelineLayout pipelineLayout;
+	VkPipeline graphicsPipeline;
+
 	std::vector<VkImage> swapChainImages;;
 	std::vector<VkImageView> swapChainImageViews;
 };

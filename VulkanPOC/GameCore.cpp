@@ -3,6 +3,8 @@
 #include <set>
 #include <cstdint> // Necessary for UINT32_MAX
 #include <algorithm> // Necessary for std::min/std::max
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include <fstream>
 static std::vector<char> readFile(const std::string& filename) {
@@ -490,10 +492,10 @@ GameCore::createGraphicsPipeline()
 	vertShaderStageInfo.pName = "main";
 
 	VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vertShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	vertShaderStageInfo.module = fragShaderModule;
-	vertShaderStageInfo.pName = "main";
+	fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	fragShaderStageInfo.module = fragShaderModule;
+	fragShaderStageInfo.pName = "main";
 
 	VkPipelineShaderStageCreateInfo shaderStags[] = { vertShaderStageInfo, fragShaderStageInfo };
 
@@ -664,6 +666,30 @@ g them until a future chapter, we are still required to create an empty pipeline
 
 	if(vkCreatePipelineLayout(this->device, &pipelineLayoutInfo, nullptr, &this->pipelineLayout) != VK_SUCCESS)
 		throw std::runtime_error("failed to create pipeline layout!");
+
+
+	VkGraphicsPipelineCreateInfo pipelineInfo{};
+	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineInfo.stageCount = 2;
+	pipelineInfo.pStages = shaderStags;
+
+	pipelineInfo.pVertexInputState = &vertexInputInfo;
+	pipelineInfo.pInputAssemblyState = &inputAssembly;
+	pipelineInfo.pViewportState = &viewportState;
+	pipelineInfo.pRasterizationState = &rasterizer;
+	pipelineInfo.pMultisampleState = &multisampling;
+	pipelineInfo.pDepthStencilState = nullptr; // optional
+	pipelineInfo.pColorBlendState = &colorBlending;
+	pipelineInfo.pDynamicState = nullptr; // optional;
+
+	pipelineInfo.layout = pipelineLayout;
+	pipelineInfo.renderPass = renderPass;
+	pipelineInfo.subpass = 0;
+	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
+	pipelineInfo.basePipelineIndex = -1; // Optional
+
+	if(vkCreateGraphicsPipelines(this->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &this->graphicsPipeline) != VK_SUCCESS)
+		throw std::runtime_error("failed to create graphics pipeline!");
 
 	vkDestroyShaderModule(device, fragShaderModule, nullptr);
 	vkDestroyShaderModule(device, vertShaderModule, nullptr);
@@ -893,6 +919,7 @@ GameCore::cleanup()
 		DestroyDebugUtilsMessengerEXT(this->instance, this->debugMessenger, nullptr);
 	}
 
+	vkDestroyPipeline(this->device, this->graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(this->device, this->pipelineLayout, nullptr);
 	vkDestroyRenderPass(this->device, this->renderPass, nullptr);
 
