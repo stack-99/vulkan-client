@@ -354,7 +354,7 @@ GameCore::createSwapChain()
 	VK_IMAGE_USAGE_TRANSFER_DST_BIT instead and use a memory operation
 	to transfer the rendered image to a swap chain image.*/
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	createInfo.presentMode = presentMode;
+
 
 	QueueFamilyIndices indices = this->findQueueFamilies(this->physicalDevice);
 	uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
@@ -375,6 +375,33 @@ GameCore::createSwapChain()
 		createInfo.queueFamilyIndexCount = 0; // Optional
 		createInfo.pQueueFamilyIndices = nullptr; // Optional
 	}
+
+	// Most hardware use the same family queus for graphiccs and presentation but if not advanced topics are required
+
+	/// <summary>
+	/// / IF YOU DONT WANT ANY TRANSFORMATION SPOECIFY THE CURRENT TRANSFORMATION
+	/// </summary>
+	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+
+	// Specifies the alpha channel, you ALMOST ALWAY WANT TO SIMPLY IGNOER THE ALPHA CHANNEL therefoer use thiso ption..
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	
+	createInfo.presentMode = presentMode;
+	createInfo.clipped = VK_TRUE; // best performance
+	createInfo.oldSwapchain = VK_NULL_HANDLE; // FOR NOW WE WIL LASSSUME ONLY 1 SWAPCHAINM WILL BE CREATED
+	// AS IF THE WINDOW IS REZIED THE SWAP CHAIN NEEDS TO BE RECREATED FEROM SCRATCH, AND A REFERENCE TO TH EOLD ONE MUST BE SPECIFIED.
+
+	if(vkCreateSwapchainKHR(this->device, &createInfo, nullptr, &this->swapChain) != VK_SUCCESS) 
+		throw std::runtime_error("failed to create swap chain!");
+
+	uint32_t swapChainCount = 0;
+	vkGetSwapchainImagesKHR(this->device, this->swapChain, &swapChainCount, nullptr);
+	this->swapChainImages.resize(swapChainCount);
+	vkGetSwapchainImagesKHR(this->device, this->swapChain, &swapChainCount, this->swapChainImages.data());
+
+	this->swapChainImageFormat = surfaceFormat.format;
+	this->swapChainExtent = extent;
+
 }
 
 void 
@@ -525,6 +552,7 @@ GameCore::cleanup()
 		DestroyDebugUtilsMessengerEXT(this->instance, this->debugMessenger, nullptr);
 	}
 
+	vkDestroySwapchainKHR(this->device, this->swapChain, nullptr);
 	vkDestroyDevice(this->device, nullptr);
 	vkDestroySurfaceKHR(this->instance, this->surface, nullptr);
 	vkDestroyInstance(this->instance, nullptr);

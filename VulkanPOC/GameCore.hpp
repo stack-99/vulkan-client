@@ -113,4 +113,8 @@ private:
 	VkQueue presentQueue;
 
 	VkSurfaceKHR surface;
+	VkSwapchainKHR swapChain;
+	VkFormat swapChainImageFormat;
+	VkExtent2D swapChainExtent;
+	std::vector<VkImage> swapChainImages;;
 };
