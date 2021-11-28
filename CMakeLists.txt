@@ -16,8 +16,8 @@ endif(MSVC)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 
  target_include_directories(${PROJECT_NAME}  PUBLIC
-   "E:\\Program_Files\\VulkanSDK\\1.2.176.1\\Include"
- "E:\\Program_Files\\VulkanSDK\\1.2.176.1\\Include\\vulkan"
+   "$ENV{TOOLKIT_ROOT}\\VulkanSDK\\1.2.176.1\\Include"
+ "$ENV{TOOLKIT_ROOT}\\VulkanSDK\\1.2.176.1\\Include\\vulkan"
  "$ENV{TOOLKIT_ROOT}\\glfw\\glfw-3.3.4.bin.WIN64\\include" 
   "$ENV{TOOLKIT_ROOT}\\glm" 
  )
@@ -25,5 +25,5 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 
   target_link_directories(${PROJECT_NAME} PUBLIC 
    "$ENV{TOOLKIT_ROOT}\\glfw\\glfw-3.3.4.bin.WIN64\\lib-vc2019" 
-   "E:\\Program_Files\\VulkanSDK\\1.2.176.1\\Lib"
+   "$ENV{TOOLKIT_ROOT}\\VulkanSDK\\1.2.176.1\\Lib"
   )
