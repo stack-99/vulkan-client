@@ -672,7 +672,74 @@ g them until a future chapter, we are still required to create an empty pipeline
 void
 GameCore::createRenderPass()
 {
+	VkAttachmentDescription colorAttachment{};
+	colorAttachment.format = this->swapChainImageFormat;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 
+	/*The loadOp and storeOp determine what to do with the data in the attachment before rendering and after rendering. We have the following choices for loadOp:
+
+VK_ATTACHMENT_LOAD_OP_LOAD: Preserve the existing contents of the attachment
+VK_ATTACHMENT_LOAD_OP_CLEAR: Clear the values to a constant at the start
+VK_ATTACHMENT_LOAD_OP_DONT_CARE: Existing contents are undefined; we don't care about them
+In our case we're going to use the clear operation to clear the framebuffer to black before drawing a new frame. There are only two possibilities for the storeOp:
+
+VK_ATTACHMENT_STORE_OP_STORE: Rendered contents will be stored in memory and can be read later
+VK_ATTACHMENT_STORE_OP_DONT_CARE: Contents of the framebuffer will be undefined after the rendering operation
+We're interested in seeing the rendered triangle on the screen, so we're going with the store operation here.*/
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+	/*The loadOp and storeOp apply to color and depth data, and stencilLoadOp / stencilStoreOp apply to stencil data. 
+	Our application won't do anything with the stencil buffer, so the results of loading and storing are irrelevant.*/
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	/*Textures and framebuffers in Vulkan are represented by VkImage objects with a certain pixel format, however the layout of the pixels in memory can change based on what you're trying to do with an image.
+
+Some of the most common layouts are:
+
+VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL: Images used as color attachment
+VK_IMAGE_LAYOUT_PRESENT_SRC_KHR: Images to be presented in the swap chain
+VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL: Images to be used as destination for a memory copy operation
+We'll discuss this topic in more depth in the texturing chapter, but what's important to know right now is that images need to be 
+transitioned to specific layouts that are suitable for the operation that they're going to be involved in next.
+
+The initialLayout specifies which layout the image will have before the render pass begins. The finalLayout specifies the
+layout to automatically transition to when the render pass finishes. Using VK_IMAGE_LAYOUT_UNDEFINED for initialLayout 
+means that we don't care what previous layout the image was in. The caveat of this special value is that the contents of the 
+image are not guaranteed to be preserved, but that doesn't matter since we're going to clear it anyway. We want the image to be ready for presentation 
+using the swap chain after rendering, which is why we use VK_IMAGE_LAYOUT_PRESENT_SRC_KHR as finalLayout.*/
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+
+	// Subpasses and attachment references
+	VkAttachmentReference colorAttachmentRef{};
+	colorAttachmentRef.attachment = 0;
+	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	/*The index of the attachment in this array is directly referenced from the fragment shader with the layout(location = 0) out vec4 outColor directive!
+
+The following other types of attachments can be referenced by a subpass:
+
+pInputAttachments: Attachments that are read from a shader
+pResolveAttachments: Attachments used for multisampling color attachments
+pDepthStencilAttachment: Attachment for depth and stencil data
+pPreserveAttachments: Attachments that are not used by this subpass, but for which the data must be preserved*/
+	VkSubpassDescription subpass{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colorAttachmentRef;
+
+	VkRenderPassCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	createInfo.attachmentCount = 1;
+	createInfo.pAttachments = &colorAttachment;
+	createInfo.subpassCount = 1;
+	createInfo.pSubpasses = &subpass;
+
+	if(vkCreateRenderPass(this->device, &createInfo, nullptr, &this->renderPass) != VK_SUCCESS)
+		throw std::runtime_error("failed to create render pass!");
 }
 
 void 
@@ -827,6 +894,7 @@ GameCore::cleanup()
 	}
 
 	vkDestroyPipelineLayout(this->device, this->pipelineLayout, nullptr);
+	vkDestroyRenderPass(this->device, this->renderPass, nullptr);
 
 	for (auto imageView : this->swapChainImageViews)
 	{
