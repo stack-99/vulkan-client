@@ -404,6 +404,44 @@ GameCore::createSwapChain()
 
 }
 
+void
+GameCore::createImageViews()
+{
+	this->swapChainImageViews.resize(this->swapChainImages.size());
+
+	for (const auto& image : this->swapChainImages)
+	{
+		VkImageViewCreateInfo createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		createInfo.image = image;
+
+		// 2D OR 32RD
+		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		createInfo.format = this->swapChainImageFormat;
+
+		// COLOR CHANNELS
+		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+		//
+		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.levelCount = 1;
+		createInfo.subresourceRange.baseArrayLayer = 0;
+		createInfo.subresourceRange.layerCount = 1;
+
+		VkImageView imageView;
+		/*An image view is sufficient to start using an image as a texture, but it's not quite ready to be used as a render target just yet. 
+		That requires one more step of indirection, known as a framebuffer. But first we'll have to set up the graphics pipeline.*/
+		if(vkCreateImageView(this->device, &createInfo, nullptr, &imageView) != VK_SUCCESS)
+			throw std::runtime_error("failed to create image views!");
+
+		this->swapChainImageViews.push_back(imageView);
+	}
+}
+
 void 
 GameCore::setupDebugMessenger()
 {
@@ -433,6 +471,7 @@ GameCore::initVulkan()
 	this->pickPhysicalDevice();
 	this->createLogicalDevice();
 	this->createSwapChain();
+	this->createImageViews();
 }
 
 int 
@@ -550,6 +589,11 @@ GameCore::cleanup()
 	if (this->enableValidationLayers)
 	{
 		DestroyDebugUtilsMessengerEXT(this->instance, this->debugMessenger, nullptr);
+	}
+
+	for (auto imageView : this->swapChainImageViews)
+	{
+		vkDestroyImageView(this->device, imageView, nullptr);
 	}
 
 	vkDestroySwapchainKHR(this->device, this->swapChain, nullptr);
